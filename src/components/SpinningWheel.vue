@@ -5,7 +5,7 @@
         xmlns="http://www.w3.org/2000/svg"
         width="100%"
         height="100%"
-        viewBox="0 0 729.1 729.1"
+        :viewBox="`0 0 ${dimension} ${dimension}`"
       >
         <g ref="wheel">
           <path
@@ -115,19 +115,10 @@ export default {
       type: Array,
       default: () => [...new Array(6)],
     },
-    center: {
-      type: Object,
-      required: true,
-      default: () => ({ x: 366, y: 366 }),
-    },
-    radius: {
-      type: Number,
-      required: true,
-      default: 325,
-    },
   },
   data() {
     return {
+      radius: 325,
       deg: 0,
       showWheel: false,
       slicesRefs: [],
@@ -135,6 +126,12 @@ export default {
     };
   },
   computed: {
+    dimension() {
+      return this.radius * 2 + 80;
+    },
+    center() {
+      return { x: this.dimension / 2, y: this.dimension / 2 };
+    },
     parsedSegments() {
       return this.segments.map((s, index) => ({
         ...s,
@@ -169,17 +166,16 @@ export default {
       return indicator;
     },
     wheel() {
-      const onComplete = this.onAnimationComplete;
-      const onUpdate = this.onAnimationUpdate;
       const wheel = gsap.timeline();
 
       wheel.to(this.$refs.wheel, 5, {
         rotation: this.deg,
         transformOrigin: "50% 50%",
         ease: "Power4.easeOut",
-        onUpdate,
-        onComplete,
+        onUpdate: this.onAnimationUpdate,
+        onComplete: this.onAnimationComplete,
       });
+
       return wheel;
     },
     slices() {
