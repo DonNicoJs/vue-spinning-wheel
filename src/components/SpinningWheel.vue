@@ -227,7 +227,10 @@ export default {
         gsap.getProperty(this.$refs.wheel, "rotation")
       );
       const tolerance = currentRotation - this.lastRotation;
-      if (Math.round(currentRotation) % (360 / 12) <= tolerance) {
+      if (
+        Math.round(currentRotation) % (360 / this.parsedSegments.length) <=
+        tolerance
+      ) {
         if (
           this.indicator.progress() > 0.3 ||
           this.indicator.progress() === 0
