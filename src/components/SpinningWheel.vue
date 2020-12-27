@@ -115,6 +115,16 @@ export default {
       type: Array,
       default: () => [...new Array(6)],
     },
+    center: {
+      type: Object,
+      required: true,
+      default: () => ({ x: 366, y: 366 }),
+    },
+    radius: {
+      type: Number,
+      required: true,
+      default: 325,
+    },
   },
   data() {
     return {
@@ -160,43 +170,27 @@ export default {
     },
     wheel() {
       const onComplete = this.onAnimationComplete;
-      const wheelRef = this.$refs.wheel;
-      const indicator = this.indicator;
+      const onUpdate = this.onAnimationUpdate;
       const wheel = gsap.timeline();
 
-      wheel.to(wheelRef, 5, {
+      wheel.to(this.$refs.wheel, 5, {
         rotation: this.deg,
         transformOrigin: "50% 50%",
         ease: "Power4.easeOut",
-        onUpdate: function() {
-          const currentRotation = Math.round(
-            gsap.getProperty(wheelRef, "rotation")
-          );
-          const tolerance = currentRotation - this.lastRotation;
-          if (Math.round(currentRotation) % (360 / 12) <= tolerance) {
-            if (indicator.progress() > 0.3 || indicator.progress() === 0) {
-              indicator.play(0);
-            }
-          }
-          this.lastRotation = currentRotation;
-        },
+        onUpdate,
         onComplete,
       });
       return wheel;
     },
     slices() {
-      const cx = 366;
-      const cy = 365;
-      const r = 325;
-      const slices = this.parsedSegments.length;
       return this.parsedSegments.map((s, i) => {
-        const mainPath = this.generateSlice(cx, cy, r, slices, i);
+        const mainPath = this.generateSlice(this.radius, i);
         return {
           ...s,
           slice: {
             ...s.slice,
             ...mainPath,
-            defD: this.generateSlice(cx, cy, r - 60, slices, i).d,
+            defD: this.generateSlice(this.radius - 60, i).d,
           },
         };
       });
@@ -209,15 +203,18 @@ export default {
       this.wheel.timeScale(1).seek(0);
       this.indicator.timeScale(1).seek(0);
     },
-    generateSlice(cx, cy, r, slices, i) {
+    generateSlice(r, i) {
+      const slices = this.parsedSegments.length;
       const fromAngle = (i * 360) / slices;
       const toAngle = ((i + 1) * 360) / slices;
-      const fromCoordX = cx + r * Math.cos((fromAngle * Math.PI) / 180);
-      const fromCoordY = cy + r * Math.sin((fromAngle * Math.PI) / 180);
-      const toCoordX = cx + r * Math.cos((toAngle * Math.PI) / 180);
-      const toCoordY = cy + r * Math.sin((toAngle * Math.PI) / 180);
+      const fromCoordX =
+        this.center.x + r * Math.cos((fromAngle * Math.PI) / 180);
+      const fromCoordY =
+        this.center.y + r * Math.sin((fromAngle * Math.PI) / 180);
+      const toCoordX = this.center.x + r * Math.cos((toAngle * Math.PI) / 180);
+      const toCoordY = this.center.y + r * Math.sin((toAngle * Math.PI) / 180);
       return {
-        d: `M${cx},${cy} L${fromCoordX},${fromCoordY} A${r},${r} 0 0,1 ${toCoordX},${toCoordY}z`,
+        d: `M${this.center.x},${this.center.y} L${fromCoordX},${fromCoordY} A${r},${r} 0 0,1 ${toCoordX},${toCoordY}z`,
         fromCoordX,
         fromCoordY,
         toCoordY,
@@ -228,6 +225,21 @@ export default {
     },
     getRandomInt(min, max) {
       return Math.floor(Math.random() * (max - min + 1)) + min;
+    },
+    onAnimationUpdate() {
+      const currentRotation = Math.round(
+        gsap.getProperty(this.$refs.wheel, "rotation")
+      );
+      const tolerance = currentRotation - this.lastRotation;
+      if (Math.round(currentRotation) % (360 / 12) <= tolerance) {
+        if (
+          this.indicator.progress() > 0.3 ||
+          this.indicator.progress() === 0
+        ) {
+          this.indicator.play(0);
+        }
+      }
+      this.lastRotation = currentRotation;
     },
     onAnimationComplete() {
       const indicatorBox = this.$refs.indicator.getBoundingClientRect();
@@ -240,15 +252,13 @@ export default {
         const fromAngle = s.slice.fromAngle + this.deg - this.rotations * 360;
         const toAngle = s.slice.toAngle + this.deg - this.rotations * 360;
         if (fromAngle < indicatorAngle && toAngle > indicatorAngle) {
-          console.log(s.slice);
           this.$emit("result", { ...s, el: undefined });
         }
       });
     },
     angleDeg(p1) {
-      const center = { x: 366, y: 365 };
       return Math.abs(
-        (Math.atan2(center.y - p1.y, center.x - p1.x) * 360) / Math.PI
+        (Math.atan2(this.center.y - p1.y, this.center.x - p1.x) * 360) / Math.PI
       );
     },
   },
