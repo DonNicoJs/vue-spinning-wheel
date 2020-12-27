@@ -1,26 +1,35 @@
 <template>
-  <img alt="Vue logo" src="./assets/logo.png">
-  <HelloWorld msg="Welcome to Your Vue.js App"/>
+  <div>
+    <spinning-wheel :segments="segments" @result="saveResult"></spinning-wheel>
+    <p>
+      {{ result }}
+    </p>
+  </div>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
+import SpinningWheel from "./components/SpinningWheel";
 
 export default {
-  name: 'App',
   components: {
-    HelloWorld
-  }
-}
+    SpinningWheel,
+  },
+  data() {
+    return {
+      result: null,
+      segments: [
+        { id: 1, slice: { fill: "green" }, label: { text: "Apple" } },
+        { id: 2, slice: { fill: "red" }, label: { text: "Mango" } },
+        { id: 3, slice: { fill: "orange" }, label: { text: "Orange" } },
+      ],
+    };
+  },
+  methods: {
+    saveResult(e) {
+      this.result = e;
+    },
+  },
+};
 </script>
 
-<style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
-}
-</style>
+<style></style>
