@@ -1,9 +1,14 @@
 <template>
   <div>
-    <spinning-wheel :segments="segments" @result="saveResult"></spinning-wheel>
+    <spinning-wheel
+      :segments="segments"
+      :skip="winners"
+      @result="win"
+    ></spinning-wheel>
     <p>
       {{ result }}
     </p>
+    <p>Previous winners: {{ winners }}</p>
   </div>
 </template>
 
@@ -22,10 +27,12 @@ export default {
         { id: 2, slice: { fill: "red" }, label: { text: "Mango" } },
         { id: 3, slice: { fill: "orange" }, label: { text: "Orange" } },
       ],
+      winners: [],
     };
   },
   methods: {
-    saveResult(e) {
+    win(e) {
+      this.winners.push(e.id);
       this.result = e;
     },
   },
