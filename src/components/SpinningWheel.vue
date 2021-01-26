@@ -199,9 +199,13 @@ export default {
   },
   methods: {
     addSliceRef(el, path, index) {
-      if (!this.slicesRefs.find((s) => s.id == path.id)) {
+      const sliceIndex = this.slicesRefs.findIndex((s) => s.id == path.id);
+      if (sliceIndex === -1) {
         this.slicesRefs.push({ el, index, ...path });
+      } else {
+        this.slicesRefs.slice(sliceIndex, 1, { el, index, ...path });
       }
+      console.log(this.slicesRefs);
     },
     spin() {
       this.deg = this.getRandomInt(720, 2400);
@@ -266,7 +270,7 @@ export default {
         const toAngle = s.slice.toAngle + this.deg - this.rotations * 360;
         if (fromAngle < indicatorAngle && toAngle > indicatorAngle) {
           if (this.skip.includes(s.id)) {
-            this.spinToNext(toAngle);
+            this.spinToNext(360 / this.slices.length);
             return;
           }
           this.$emit("result", { ...s, el: undefined });
