@@ -21,7 +21,7 @@
               <path
                 stroke="black"
                 v-bind="path.slice"
-                :ref="(el) => slicesRefs.push({ el, index, ...path })"
+                :ref="(el) => addSliceRef(el, path, index)"
               ></path>
               <circle
                 :cx="path.slice.fromCoordX"
@@ -115,6 +115,11 @@ export default {
       type: Array,
       default: () => [...new Array(6)],
     },
+    skip: {
+      type: Array,
+      required: false,
+      default: () => [],
+    },
   },
   data() {
     return {
@@ -193,9 +198,19 @@ export default {
     },
   },
   methods: {
-    async spin() {
+    addSliceRef(el, path, index) {
+      if (!this.slicesRefs.find((s) => s.id == path.id)) {
+        this.slicesRefs.push({ el, index, ...path });
+      }
+    },
+    spin() {
       this.deg = this.getRandomInt(720, 2400);
       this.showWheel = true;
+      this.wheel.timeScale(1).seek(0);
+      this.indicator.timeScale(1).seek(0);
+    },
+    spinToNext(destination) {
+      this.deg = destination;
       this.wheel.timeScale(1).seek(0);
       this.indicator.timeScale(1).seek(0);
     },
@@ -246,14 +261,18 @@ export default {
         x: indicatorBox.left,
         y: indicatorBox.bottom,
       });
-
-      this.slicesRefs.forEach((s) => {
+      for (const s of this.slicesRefs) {
         const fromAngle = s.slice.fromAngle + this.deg - this.rotations * 360;
         const toAngle = s.slice.toAngle + this.deg - this.rotations * 360;
         if (fromAngle < indicatorAngle && toAngle > indicatorAngle) {
+          if (this.skip.includes(s.id)) {
+            this.spinToNext(toAngle);
+            return;
+          }
           this.$emit("result", { ...s, el: undefined });
+          return;
         }
-      });
+      }
     },
     angleDeg(p1) {
       return Math.abs(
