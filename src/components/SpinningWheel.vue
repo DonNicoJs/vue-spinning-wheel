@@ -125,9 +125,10 @@ export default {
     return {
       radius: 325,
       deg: 0,
-      showWheel: false,
+      showWheel: true,
       slicesRefs: [],
       lastRotation: 0,
+      indicatorAngle: 334,
     };
   },
   computed: {
@@ -151,37 +152,12 @@ export default {
         },
       }));
     },
-    rotations() {
-      return Math.floor(this.deg / 360);
+    rotation() {
+      return this.deg % 360;
     },
-    indicator() {
-      const indicator = gsap.timeline();
-      indicator
-        .to(this.$refs.indicator, 0.13, {
-          rotation: -10,
-          transformOrigin: "65% 36%",
-          ease: "Power1.easeOut",
-        })
-        .to(this.$refs.indicator, 0.13, {
-          rotation: 3,
-          backgroundColor: "red",
-          transformOrigin: "65% 36%",
-          ease: "Power1.easeOut",
-        });
-      return indicator;
-    },
-    wheel() {
-      const wheel = gsap.timeline();
-
-      wheel.to(this.$refs.wheel, 5, {
-        rotation: this.deg,
-        transformOrigin: "50% 50%",
-        ease: "Power4.easeOut",
-        onUpdate: this.onAnimationUpdate,
-        onComplete: this.onAnimationComplete,
-      });
-
-      return wheel;
+    rotatedIndicator() {
+      const sum = this.indicatorAngle - this.rotation;
+      return sum < 0 ? 360 + sum : sum;
     },
     slices() {
       return this.parsedSegments.map((s, i) => {
@@ -197,26 +173,48 @@ export default {
       });
     },
   },
+  mounted() {
+    this._wheel = gsap.timeline();
+    this._indicator = gsap.timeline();
+    this._wheel.play();
+    this._indicator
+      .to(this.$refs.indicator, 0.13, {
+        rotation: -10,
+        transformOrigin: "65% 36%",
+        ease: "Power1.easeOut",
+      })
+      .to(this.$refs.indicator, 0.13, {
+        rotation: 3,
+        backgroundColor: "red",
+        transformOrigin: "65% 36%",
+        ease: "Power1.easeOut",
+      });
+  },
   methods: {
+    setupWheel() {
+      this._wheel.set(this.$refs.wheel, { rotation: 0 });
+      this._wheel.to(this.$refs.wheel, 5, {
+        rotation: this.deg,
+        transformOrigin: "50% 50%",
+        ease: "Power4.easeOut",
+        onUpdate: this.onAnimationUpdate,
+        onComplete: this.onAnimationComplete,
+      });
+    },
     addSliceRef(el, path, index) {
       const sliceIndex = this.slicesRefs.findIndex((s) => s.id == path.id);
       if (sliceIndex === -1) {
         this.slicesRefs.push({ el, index, ...path });
-      } else {
-        this.slicesRefs.slice(sliceIndex, 1, { el, index, ...path });
       }
-      console.log(this.slicesRefs);
     },
     spin() {
       this.deg = this.getRandomInt(720, 2400);
       this.showWheel = true;
-      this.wheel.timeScale(1).seek(0);
-      this.indicator.timeScale(1).seek(0);
+      this.setupWheel();
     },
     spinToNext(destination) {
       this.deg = destination;
-      this.wheel.timeScale(1).seek(0);
-      this.indicator.timeScale(1).seek(0);
+      this.setupWheel();
     },
     generateSlice(r, i) {
       const slices = this.parsedSegments.length;
@@ -251,37 +249,30 @@ export default {
         tolerance
       ) {
         if (
-          this.indicator.progress() > 0.3 ||
-          this.indicator.progress() === 0
+          this._indicator.progress() > 0.3 ||
+          this._indicator.progress() === 0
         ) {
-          this.indicator.play(0);
+          this._indicator.play(0);
         }
       }
       this.lastRotation = currentRotation;
     },
     onAnimationComplete() {
-      const indicatorBox = this.$refs.indicator.getBoundingClientRect();
-      const indicatorAngle = this.angleDeg({
-        x: indicatorBox.left,
-        y: indicatorBox.bottom,
-      });
       for (const s of this.slicesRefs) {
-        const fromAngle = s.slice.fromAngle + this.deg - this.rotations * 360;
-        const toAngle = s.slice.toAngle + this.deg - this.rotations * 360;
-        if (fromAngle < indicatorAngle && toAngle > indicatorAngle) {
+        const fromAngle = s.slice.fromAngle;
+        const toAngle = s.slice.toAngle;
+        if (
+          fromAngle < this.rotatedIndicator &&
+          toAngle > this.rotatedIndicator
+        ) {
           if (this.skip.includes(s.id)) {
-            this.spinToNext(360 / this.slices.length);
+            this.spinToNext(this.deg + 360 / this.slices.length);
             return;
           }
           this.$emit("result", { ...s, el: undefined });
           return;
         }
       }
-    },
-    angleDeg(p1) {
-      return Math.abs(
-        (Math.atan2(this.center.y - p1.y, this.center.x - p1.x) * 360) / Math.PI
-      );
     },
   },
 };
